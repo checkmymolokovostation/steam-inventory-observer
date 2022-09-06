@@ -111,7 +111,33 @@ async function getNewItemInfo(profile_id, game_id, cookie, item_info_lang) {
         },
         method: 'GET'
     })
-    return [response.data['descriptions'][0]['name'], response.data['descriptions'][0]['icon_url_large']]
+    let item_name = response.data['descriptions'][0]['name']
+    let icon_url = response.data['descriptions'][0]['icon_url']
+    let hash_name = response.data['descriptions'][0]['market_hash_name'].replace(' ', '%20')
+    response = await axios(`https://steamcommunity.com/market/priceoverview/?country=${item_info_lang}&currency&appid=${game_id}&market_hash_name=${hash_name}`, {
+        headers: {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'ru-RU,ru;q=0.9',
+            'Cookie': cookie,
+            'Host': 'steamcommunity.com',
+            'Referer': `https://steamcommunity.com/id/${game_id}/inventory/`,
+            'sec-ch-ua': '"Chromium";v="104", " Not A;Brand";v="99", "Google Chrome";v="104"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        method: 'GET',
+        responseType: 'json'
+    })
+    let lowest_price = response.data['lowest_price']
+    let volume = response.data['volume']
+    let medium_price = response.data['median_price']
+    return [item_name, icon_url, lowest_price, volume, medium_price]
 }
 
 // Main function
@@ -133,7 +159,7 @@ async function getNewItemInfo(profile_id, game_id, cookie, item_info_lang) {
             profile_id = accs_id[counter]
             let acc_items_quantity = await getItemsQuantity(profile_id, game_id, cookie)
             accs_data.push([profile_id, acc_items_quantity])
-            await sleep(10000)
+            await sleep(5000)
             counter += 1
             console.log('\x1b[32m%s\x1b[0m', 'Getting Inventory Information: ', `${counter} / ${accs_quantity}`)
         }
@@ -148,7 +174,10 @@ async function getNewItemInfo(profile_id, game_id, cookie, item_info_lang) {
                 .setTitle('New Item')
                 .setAuthor('S.I.O', 'https://i.ibb.co/ts3TLRD/11.png', 'https://github.com/vsidorik/steam-inventory-observer')
                 .setURL('https://github.com/vsidorik/steam-inventory-observer')
-                .addField('Item name: ', item_data[0], true)
+                .addField('Item name: ', item_data[0], false)
+                .addField('Lowest price: ', item_data[2], false)
+                .addField('Volume: ', item_data[3], false)
+                .addField('Medium price: ', item_data[4], false)
                 .setColor('#02a62d')
                 .setThumbnail('https://i.ibb.co/ts3TLRD/11.png')
                 .setImage(`https://community.cloudflare.steamstatic.com/economy/image/${item_data[1]}`)
